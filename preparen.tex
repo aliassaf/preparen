@@ -1,0 +1,197 @@
+\documentclass{article}
+
+\usepackage{preparen}
+
+\def\arraystretch{1.2}
+
+\title{Preparen --- A \LaTeX package for pretty-printing precedence parentheses}
+
+\author{Ali Assaf}
+
+\date{2014/10/14 version 1.1}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This package provides commands for pretty-printing parentheses according to 
+precedence levels. It can be used to define and write abstract syntax trees in
+\LaTeX without worrying about parentheses.
+\end{abstract}
+
+\section{Commands}
+
+Pretty-printing in this package is based on a notion of \emph{precedence
+levels} that dictate the order in which operations should be parsed relative
+to each other.
+The idea is that when we switch from a lower precedence level to a higher
+precedence level (say a multiplication inside an addition), we don't need to
+print parentheses because the expression would not be ambiguous, such as in:
+\[
+1 + 2 \times 3
+\]
+When we switch from a higher level to a lower level (an addition inside a
+multiplication), we need to print parentheses to disambiguate, such as in:
+\[
+1 \times \left(2 + 3\right)
+\]
+
+The package provides two commands \verb|\requirelvel| and \verb|\protectlevel|.
+The first takes a number and an expression, and requires the precedence level
+inside the expression to be at least as high as the given number. The second
+takes a number and an expression and compares the given level to the current
+required level. If it is smaller than the current required level, it surrounds
+the expression with parentheses:
+\begin{verbatim}
+\[
+1 \times \requirelevel{2}{
+  \protectlevel{1}{2 + 3}}
+\]
+\end{verbatim}
+\[
+1 \times \requirelevel{2}{
+  \protectlevel{1}{2 + 3}}
+\]
+If it is higher than or equal to the current required level, it prints the
+expression unchanged:
+\begin{verbatim}
+\[
+1 + \requirelevel{1}{
+  \protectlevel{2}{2 \times 3}}
+\]
+\end{verbatim}
+\[
+1 + \requirelevel{1}{
+  \protectlevel{2}{2 \times 3}}
+\]
+
+
+\section{Examples}
+
+\subsection{Arithmetic expressions}
+
+Arithmetic expressions are given by the following non-amgiguous grammar:
+\[
+\begin{array}{lll}
+A & ::= & A + M \mid A - M \mid M \\
+M & ::= & M \times V \mid M \div V \mid V \\
+V & ::= & x \mid \left(A\right) \\
+\end{array}
+\]
+We can assign the addition and subtraction operators a precedence level of 1
+and the multiplication and division operators a precedence level of 2
+(variables have a precedence level of 3 but we don't need to give them an
+explicit operator).
+\begin{verbatim}
+\newcommand{\plusop}[2]{
+  \protectlevel{1}{
+    \requirelevel{1}{#1} + \requirelevel{2}{#2}}}
+
+\newcommand{\minusop}[2]{
+  \protectlevel{1}{
+    \requirelevel{1}{#1} - \requirelevel{2}{#2}}}
+
+\newcommand{\timesop}[2]{
+  \protectlevel{2}{
+    \requirelevel{2}{#1} + \requirelevel{3}{#2}}}
+
+\newcommand{\divop}[2]{
+  \protectlevel{2}{
+    \requirelevel{2}{#1} + \requirelevel{3}{#2}}}
+\end{verbatim}
+We can now use these constructs to write arbitrary arithmetic expressions
+without worrying about parentheses.
+
+\newcommand{\plusop}[2]{
+  \protectlevel{1}{
+    \requirelevel{1}{#1} + \requirelevel{2}{#2}}}
+
+\newcommand{\minusop}[2]{
+  \protectlevel{1}{
+    \requirelevel{1}{#1} - \requirelevel{2}{#2}}}
+
+\newcommand{\timesop}[2]{
+  \protectlevel{2}{
+    \requirelevel{2}{#1} \times \requirelevel{3}{#2}}}
+
+\newcommand{\divop}[2]{
+  \protectlevel{2}{
+    \requirelevel{2}{#1} \div \requirelevel{3}{#2}}}
+
+\begin{verbatim}
+\[
+\minusop{\plusop{1}{\timesop{2}{\plusop{x}{3}}}}{\minusop{4}{5}}
+\]
+\end{verbatim}
+\[
+\minusop{\plusop{1}{\timesop{2}{\plusop{x}{3}}}}{\minusop{4}{5}}
+\]
+
+\subsection{$\lambda$-calculus expressions}
+
+Expressions of the $\lambda$-calculus are given by the following non-amgiguous
+grammar:
+\[
+\begin{array}{lll}
+L & ::= & \lambda x.L \mid A \\
+A & ::= & A\,V \mid V \\
+V & ::= & x \mid \left(L\right) \\
+\end{array}
+\]
+We can assign the $\lambda$ construct a precedence level of 1 and the
+application construct a precedence level of 2 (variables have a precedence
+level of 3 but we don't need to give them an explicit construct).
+\begin{verbatim}
+\newcommand{\lam}[2]{
+  \protectlevel{1}{
+    \lambda #1.\requirelevel{1}{#2}}}
+
+\newcommand{\app}[2]{
+  \protectlevel{2}{
+    \requirelevel{2}{#1}\,\requirelevel{3}{#2}}}
+\end{verbatim}
+We can now use these constructs to write arbitrary $\lambda$-calculus
+expressions without worrying about parentheses.
+
+\newcommand{\lam}[2]{
+  \protectlevel{1}{
+    \lambda #1.\requirelevel{1}{#2}}}
+
+\newcommand{\app}[2]{
+  \protectlevel{2}{
+    \requirelevel{2}{#1}\,\requirelevel{3}{#2}}}
+
+\begin{verbatim}
+\newcommand{\deltaterm}{\lam{x}{\app{x}{x}}}
+\newcommand{\omegaterm}{\app{\deltaterm}{\deltaterm}}
+\end{verbatim}
+\newcommand{\deltaterm}{\lam{x}{\app{x}{x}}}
+\newcommand{\omegaterm}{\app{\deltaterm}{\deltaterm}}
+\begin{verbatim}
+\[
+\Delta = \deltaterm
+\]
+\end{verbatim}
+\[
+\Delta = \deltaterm
+\]
+\begin{verbatim}
+\[
+\Omega = \app{\Delta}{\Delta} = \omegaterm
+\]
+\end{verbatim}
+\[
+\Omega = \app{\Delta}{\Delta} = \omegaterm
+\]
+\begin{verbatim}
+\[
+\app{\Omega}{\Omega} = \app{\omegaterm}{\omegaterm}
+\]
+\end{verbatim}
+\[
+\app{\Omega}{\Omega} = \app{\omegaterm}{\omegaterm}
+\]
+
+\end{document}
+
