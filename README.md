@@ -1,4 +1,4 @@
-preparen
+Preparen
 ========
 
-Latex package for pretty-printing precedence parentheses
+A Latex package for pretty-printing precedence parentheses
